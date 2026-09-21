@@ -1,0 +1,192 @@
+@import "tailwindcss";
+
+/* Night vigil: lapis-black page, vellum text, gold leaf, rubric red for recording. */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0e1330;
+  --surface: #161d47;
+  --raised: #1e2760;
+  --text: #ece4d0;
+  --muted: #9ea6cc;
+  --gilt: #dcb45f;
+  --gilt-ink: #0e1330;
+  --rubric: #e5533f;
+  --rule: rgba(236, 228, 208, 0.15);
+  --wash: rgba(220, 180, 95, 0.11);
+  --wave-idle: rgba(236, 228, 208, 0.28);
+}
+
+/* Daylight: cool paper, not cream. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --page: #eceff6;
+  --surface: #f8f9fc;
+  --raised: #ffffff;
+  --text: #141a3b;
+  --muted: #566090;
+  --gilt: #86600e;
+  --gilt-ink: #ffffff;
+  --rubric: #c2372b;
+  --rule: rgba(20, 26, 59, 0.16);
+  --wash: rgba(134, 96, 14, 0.1);
+  --wave-idle: rgba(20, 26, 59, 0.26);
+}
+
+@theme inline {
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-body: var(--text);
+  --color-muted: var(--muted);
+  --color-gilt: var(--gilt);
+  --color-gilt-ink: var(--gilt-ink);
+  --color-rubric: var(--rubric);
+  --color-rule: var(--rule);
+  --font-serif: var(--font-literata), "Gentium Plus", "SBL Greek", "Ezra SIL", Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-instrument), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--page);
+    color: var(--text);
+    font-family: var(--font-sans);
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--gilt) 35%, transparent);
+  }
+  :focus-visible {
+    outline: 2px solid var(--gilt);
+    outline-offset: 3px;
+  }
+  button {
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    padding: 0.6rem 1.15rem;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    line-height: 1.2;
+    transition: background-color 0.15s, filter 0.15s, transform 0.15s;
+  }
+  .btn:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .btn-gilt {
+    background: var(--gilt);
+    color: var(--gilt-ink);
+  }
+  .btn-gilt:hover:not(:disabled) {
+    filter: brightness(1.08);
+  }
+  .btn-rubric {
+    background: var(--rubric);
+    color: #fff;
+  }
+  .btn-rubric:hover:not(:disabled) {
+    filter: brightness(1.1);
+  }
+  .btn-line {
+    border: 1px solid var(--rule);
+    color: var(--text);
+  }
+  .btn-line:hover:not(:disabled) {
+    background: var(--wash);
+  }
+  .icon-btn {
+    display: inline-flex;
+    height: 2.25rem;
+    width: 2.25rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    color: var(--muted);
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .icon-btn:hover {
+    background: var(--wash);
+    color: var(--text);
+  }
+}
+
+/* Scripture rows */
+.verse-row {
+  position: relative;
+  border-radius: 0.6rem;
+  transition: background-color 0.2s;
+}
+.verse-row[data-selected="true"] {
+  background: var(--wash);
+}
+.verse-row[data-covered="true"]::before {
+  content: "";
+  position: absolute;
+  left: -0.9rem;
+  top: 0.55rem;
+  bottom: 0.55rem;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--gilt);
+  opacity: 0.75;
+}
+.verse-text {
+  cursor: pointer;
+  hyphens: auto;
+}
+.verse-num {
+  margin-inline-end: 0.4em;
+  padding: 0 0.15em;
+  border-radius: 0.25rem;
+  color: var(--gilt);
+  font-family: var(--font-sans);
+  font-size: 0.68em;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  vertical-align: 0.35em;
+}
+.verse-num:hover {
+  background: var(--wash);
+}
+.strongs-word {
+  background: none;
+  border: 0;
+  border-bottom: 1px dotted var(--gilt);
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+.strongs-word:hover {
+  color: var(--gilt);
+}
+
+/* Lexicon prose (sanitised third-party HTML) */
+.lexicon-html {
+  line-height: 1.7;
+}
+.lexicon-html p {
+  margin: 0.6em 0;
+}
+.lexicon-html ul,
+.lexicon-html ol {
+  margin: 0.6em 0 0.6em 1.25em;
+  list-style: revert;
+}
+.lexicon-html li {
+  margin: 0.2em 0;
+}
