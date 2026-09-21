@@ -4,19 +4,22 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useActivity } from "@/hooks/useActivity";
 import { useAuth } from "@/hooks/useAuth";
 import { useChapter } from "@/hooks/useChapter";
 import { useCommentaries } from "@/hooks/useCommentaries";
 import { usePrefs } from "@/hooks/usePrefs";
 import { useRecorder } from "@/hooks/useRecorder";
+import { speechLang, useSpeech } from "@/hooks/useSpeech";
 import { useTranslations } from "@/hooks/useTranslations";
 import { BOOKS, neighbors } from "@/lib/books";
 import { referenceLabel } from "@/lib/format";
 import type { CommentaryRecord, RecordTarget, Token } from "@/lib/types";
 import { CommentaryCard } from "./CommentaryCard";
 import { Dock } from "./Dock";
-import { ChevronLeftIcon, ChevronRightIcon } from "./icons";
+import { ChevronLeftIcon, ChevronRightIcon, SpeakerIcon } from "./icons";
 import { LexiconDrawer } from "./LexiconDrawer";
+import { ListenPlayer } from "./ListenPlayer";
 import { MarginChip } from "./MarginChip";
 import { RecorderSheet } from "./RecorderSheet";
 import { TranslationSelect } from "./TranslationSelect";
@@ -24,6 +27,8 @@ import { VerseRow } from "./VerseRow";
 
 const SCALES = [0.9, 1, 1.12, 1.28, 1.45];
 const NONE: CommentaryRecord[] = [];
+/** Set when a chapter finishes so the next chapter picks up reading aloud where this one left off. */
+const RESUME_KEY = "marginalia:listen-resume";
 
 function Skeleton() {
   return (
@@ -65,9 +70,60 @@ function ReaderInner({ bookId, chapter }: { bookId: number; chapter: number }) {
   const scaleIndex = Math.max(0, SCALES.indexOf(prefs.fontScale));
   const hasStrongs = state.status === "ready" && state.data.hasStrongs;
 
+  const { ready: activityReady, logRead } = useActivity();
+  const [listenOpen, setListenOpen] = useState(false);
+  const resumeHandled = useRef(false);
+
+  const texts = useMemo(() => (state.status === "ready" ? state.data.verses.map((v) => v.text) : []), [state]);
+  const speech = useSpeech({
+    texts,
+    lang: speechLang(info?.language),
+    rate: prefs.listenRate,
+    voiceURI: prefs.voiceURI,
+    onFinished: handleFinished,
+  });
+  const spokenVerse = state.status === "ready" ? state.data.verses[speech.index]?.n : undefined;
+
+  function handleFinished() {
+    if (!prefs.autoAdvance || !next) return;
+    try {
+      sessionStorage.setItem(RESUME_KEY, "1");
+    } catch {
+      /* private mode: the next chapter just won't auto-play */
+    }
+    router.push(`/read/${next.book.slug}/${next.chapter}`);
+  }
+
   useEffect(() => {
     update({ last: { book: bookId, chapter } });
   }, [bookId, chapter, update]);
+
+  // Count today as a reading day once a chapter has actually loaded.
+  useEffect(() => {
+    if (state.status === "ready" && user && activityReady) logRead();
+  }, [state.status, user, activityReady, logRead]);
+
+  // Arrived here by "continue into the next chapter": open the player and keep reading aloud.
+  useEffect(() => {
+    if (resumeHandled.current || state.status !== "ready" || !speech.supported) return;
+    resumeHandled.current = true;
+    try {
+      if (sessionStorage.getItem(RESUME_KEY) === "1") {
+        sessionStorage.removeItem(RESUME_KEY);
+        setListenOpen(true);
+        speech.play();
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [state.status, speech]);
+
+  // Follow along: keep the verse being read in view.
+  useEffect(() => {
+    if (!listenOpen || !speech.playing || spokenVerse == null) return;
+    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    document.getElementById(`v${spokenVerse}`)?.scrollIntoView({ block: "center", behavior: calm ? "auto" : "smooth" });
+  }, [spokenVerse, listenOpen, speech.playing]);
 
   // Deep links like /read/john/3#v16 select and scroll to the verse.
   useEffect(() => {
@@ -131,15 +187,16 @@ function ReaderInner({ bookId, chapter }: { bookId: number; chapter: number }) {
     ? referenceLabel(book.name, chapter, selection.start, selection.end)
     : `${book.name} ${chapter}, whole chapter`;
 
-  function beginRecording() {
+  function beginRecording(explicit?: { start: number; end: number } | null) {
     if (state.status !== "ready") return;
     if (!user) {
       openAuth("Sign in to record. Your commentaries are saved to your account, so they follow you to any device.");
       return;
     }
     const verses = state.data.verses;
-    const vs = selection?.start ?? null;
-    const ve = selection?.end ?? null;
+    const chosen = explicit === undefined ? selection : explicit;
+    const vs = chosen?.start ?? null;
+    const ve = chosen?.end ?? null;
     const picked = vs == null ? verses.slice(0, 3) : verses.filter((v) => v.n >= vs && v.n <= (ve ?? vs));
     const quote = picked.map((v) => v.text).join(" ").slice(0, 320);
 
@@ -155,6 +212,24 @@ function ReaderInner({ bookId, chapter }: { bookId: number; chapter: number }) {
     void rec.start(); // called inside the click so browsers treat the mic and audio context as user-initiated
   }
 
+  /** Pause reading aloud and record a thought on the verse being read. */
+  function commentOnSpoken() {
+    if (spokenVerse == null) return;
+    speech.pause();
+    const sel = { start: spokenVerse, end: spokenVerse };
+    setSelection(sel);
+    beginRecording(sel);
+  }
+
+  function toggleListen() {
+    if (listenOpen) {
+      speech.stop();
+      setListenOpen(false);
+    } else {
+      setListenOpen(true);
+    }
+  }
+
   function closeRecorder() {
     setTarget(null);
   }
@@ -168,7 +243,7 @@ function ReaderInner({ bookId, chapter }: { bookId: number; chapter: number }) {
   const openChapterRecord = chapterLevel.find((c) => c.id === openId) ?? null;
 
   return (
-    <div className="mx-auto max-w-[52rem] px-6 pb-48 pt-10">
+    <div className={`mx-auto max-w-[52rem] px-6 pt-10 ${listenOpen ? "pb-96" : "pb-48"}`}>
       <header className="flex items-end justify-between gap-6">
         <div className="flex items-baseline gap-5">
           <motion.span
@@ -197,6 +272,17 @@ function ReaderInner({ bookId, chapter }: { bookId: number; chapter: number }) {
       </header>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={toggleListen}
+          aria-pressed={listenOpen}
+          disabled={state.status !== "ready"}
+          className={`btn gap-2 py-2 ${listenOpen ? "btn-gilt" : "btn-line"}`}
+        >
+          <SpeakerIcon className="h-[18px] w-[18px]" />
+          Listen
+        </button>
+
         <TranslationSelect value={prefs.translation} translations={translations} onChange={(id) => update({ translation: id })} />
 
         <button
@@ -291,6 +377,7 @@ function ReaderInner({ bookId, chapter }: { bookId: number; chapter: number }) {
                 dir={info?.dir}
                 selected={selection != null && v.n >= selection.start && v.n <= selection.end}
                 covered={covered.has(v.n)}
+                speaking={listenOpen && spokenVerse === v.n}
                 studyMode={prefs.studyMode}
                 commentaries={here}
                 openId={here.some((c) => c.id === openId) ? openId : null}
@@ -323,8 +410,26 @@ function ReaderInner({ bookId, chapter }: { bookId: number; chapter: number }) {
       </div>
 
       <AnimatePresence>
-        {!target && state.status === "ready" && (
-          <Dock label={dockLabel} hasSelection={selection != null} onClear={() => setSelection(null)} onRecord={beginRecording} />
+        {!target && !listenOpen && state.status === "ready" && (
+          <Dock label={dockLabel} hasSelection={selection != null} onClear={() => setSelection(null)} onRecord={() => beginRecording()} />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {listenOpen && state.status === "ready" && (
+          <ListenPlayer
+            key="listen"
+            title={`${book.name} ${chapter}`}
+            verseNumber={spokenVerse}
+            rate={prefs.listenRate}
+            speech={speech}
+            autoAdvance={prefs.autoAdvance}
+            onAutoAdvance={(on) => update({ autoAdvance: on })}
+            onRate={(r) => update({ listenRate: r })}
+            onVoice={(uri) => update({ voiceURI: uri })}
+            onComment={commentOnSpoken}
+            onClose={toggleListen}
+          />
         )}
       </AnimatePresence>
 

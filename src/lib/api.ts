@@ -103,3 +103,13 @@ export async function removeCommentary(id: string): Promise<void> {
   await request(`/api/commentaries/${id}`, { method: "DELETE" });
   announceChange();
 }
+
+// ---- Activity (streaks) ---------------------------------------------------
+
+export interface ActivityData {
+  readDays: string[];
+  commentaryTimes: number[];
+}
+
+export const getActivity = () => request<ActivityData>("/api/activity");
+export const logReadDay = (day: string) => post<{ ok: true }>("/api/activity/read", { day });

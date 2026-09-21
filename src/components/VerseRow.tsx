@@ -13,6 +13,8 @@ interface Props {
   dir?: "ltr" | "rtl";
   selected: boolean;
   covered: boolean;
+  /** True while this verse is being read aloud. */
+  speaking: boolean;
   studyMode: boolean;
   commentaries: CommentaryRecord[];
   /** Only set when the open commentary belongs to this verse, so other rows don't re-render. */
@@ -24,7 +26,7 @@ interface Props {
 }
 
 function VerseRowBase({
-  verse, index, scale, dir, selected, covered, studyMode, commentaries, openId,
+  verse, index, scale, dir, selected, covered, speaking, studyMode, commentaries, openId,
   onToggleVerse, onToggleCommentary, onWord, onDeleted,
 }: Props) {
   const open = commentaries.find((c) => c.id === openId) ?? null;
@@ -64,6 +66,7 @@ function VerseRowBase({
       className="verse-row -mx-2 px-2 py-1"
       data-selected={selected}
       data-covered={covered}
+      data-speaking={speaking}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: Math.min(index, 16) * 0.03, ease: [0.22, 1, 0.36, 1] }}

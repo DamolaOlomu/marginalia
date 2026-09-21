@@ -71,3 +71,25 @@ export const SearchIcon = ({ className }: P) => (
     <path d="M16 16l4.5 4.5" />
   </svg>
 );
+
+export const BoltIcon = ({ className }: P) => (
+  <svg {...base} className={className}>
+    <path d="M13 3L5 13.5h6L10 21l8-10.5h-6L13 3z" />
+  </svg>
+);
+export const SpeakerIcon = ({ className }: P) => (
+  <svg {...base} className={className}>
+    <path d="M4 9.5v5h3.5l4.5 4v-13l-4.5 4H4z" />
+    <path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" />
+  </svg>
+);
+export const SkipBackIcon = ({ className }: P) => (
+  <svg {...base} className={className}>
+    <path d="M11 6l-6 6 6 6M19 6l-6 6 6 6" />
+  </svg>
+);
+export const SkipForwardIcon = ({ className }: P) => (
+  <svg {...base} className={className}>
+    <path d="M13 6l6 6-6 6M5 6l6 6-6 6" />
+  </svg>
+);

@@ -190,3 +190,14 @@
 .lexicon-html li {
   margin: 0.2em 0;
 }
+
+/* Verse currently being read aloud */
+.verse-row[data-speaking="true"] {
+  background: var(--wash);
+  box-shadow: inset 3px 0 0 var(--gilt);
+}
+.listen-range {
+  accent-color: var(--gilt);
+  height: 1.5rem;
+  cursor: pointer;
+}

@@ -8,9 +8,15 @@ export interface Prefs {
   fontScale: number;
   studyMode: boolean;
   last: { book: number; chapter: number } | null;
+  /** Read-aloud speed (1 = normal). */
+  listenRate: number;
+  /** The chosen device voice, or null to use the best match for the translation's language. */
+  voiceURI: string | null;
+  /** Keep reading into the next chapter when one finishes. */
+  autoAdvance: boolean;
 }
 
-const DEFAULTS: Prefs = { translation: "bolls:KJV", theme: "dark", fontScale: 1, studyMode: false, last: null };
+const DEFAULTS: Prefs = { translation: "bolls:KJV", theme: "dark", fontScale: 1, studyMode: false, last: null, listenRate: 1, voiceURI: null, autoAdvance: true };
 const KEY = "marginalia:prefs";
 
 interface PrefsContextValue {

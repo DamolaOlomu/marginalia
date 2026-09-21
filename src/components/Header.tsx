@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { useActivity } from "@/hooks/useActivity";
 import { useAuth } from "@/hooks/useAuth";
 import { usePrefs } from "@/hooks/usePrefs";
 import { parseReference } from "@/lib/reference";
-import { MoonIcon, SunIcon } from "./icons";
+import { BoltIcon, MoonIcon, SunIcon } from "./icons";
 
 function Mark() {
   const heights = [6, 15, 9, 19, 7];
@@ -16,6 +17,25 @@ function Mark() {
         <rect key={i} x={2 + i * 4} y={11 - h / 2} width="2" height={h} rx="1" fill="var(--gilt)" />
       ))}
     </svg>
+  );
+}
+
+function StreakChip() {
+  const { user } = useAuth();
+  const { stats } = useActivity();
+  if (!user || !stats) return null;
+  const n = stats.reading.current;
+  return (
+    <Link
+      href="/streaks"
+      aria-label={`Reading streak: ${n} ${n === 1 ? "day" : "days"}. Open streaks`}
+      className={`flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1.5 text-sm tabular-nums transition-colors hover:bg-wash ${
+        stats.readToday ? "border-gilt text-gilt" : "border-rule text-muted"
+      }`}
+    >
+      <BoltIcon className="h-4 w-4" />
+      {n}
+    </Link>
   );
 }
 
@@ -80,6 +100,8 @@ export function Header() {
             </span>
           )}
         </form>
+
+        <StreakChip />
 
         {!loading &&
           (user ? (

@@ -27,6 +27,18 @@ export function parseTitle(value: unknown): string {
   return title;
 }
 
+/** A local calendar day from the browser, e.g. "2026-09-21". Must be a real date within two days of today (UTC). */
+export function parseDay(value: unknown): string {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) bad('"day" must look like 2026-09-21.');
+  const [y, m, d] = value.split("-").map(Number);
+  const t = Date.UTC(y, m - 1, d);
+  if (new Date(t).toISOString().slice(0, 10) !== value) bad('"day" is not a real date.');
+  const now = new Date();
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  if (Math.abs(t - today) > 2 * 86_400_000) bad('"day" is too far from today.');
+  return value;
+}
+
 export interface CreateInput {
   book: number;
   chapter: number;

@@ -46,3 +46,12 @@ create table if not exists commentaries (
 create index if not exists commentaries_chapter_idx on commentaries (user_id, book, chapter) where status = 'ready';
 create index if not exists commentaries_recent_idx  on commentaries (user_id, created_at desc);
 create index if not exists commentaries_pending_idx on commentaries (created_at) where status = 'pending';
+
+-- Days on which a user read at least one chapter. `day` is the reader's own calendar day
+-- (their device's local date), so streaks follow their time zone rather than the server's.
+create table if not exists reading_days (
+  user_id    uuid not null references users(id) on delete cascade,
+  day        date not null,
+  created_at timestamptz not null default now(),
+  primary key (user_id, day)
+);

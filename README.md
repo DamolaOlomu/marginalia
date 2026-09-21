@@ -52,6 +52,11 @@ npm run dev                    # http://localhost:3000
 
 Create your account from the **Sign in** button. Once you have, set `ALLOW_SIGNUPS=false` in `.env.local` (and restart) so nobody else can register.
 
+## Streaks and Listen
+
+- **Streaks** (`/streaks`, the bolt chip in the header, and *This week* on the home page). A reading day counts when you open a chapter while signed in; a commentary day counts when you save a recording. The current streak stays alive until the end of today, best streaks are kept, and days follow the time zone of your device. Reading days are stored in the `reading_days` table, so **run `npm run db:migrate` after updating**. Commentary days are worked out from your existing recordings.
+- **Listen** (the button above each chapter). Reads the chapter aloud with your device's built-in voices, one verse at a time, highlighting and scrolling to the verse being read. Skip by verse, drag to seek, change speed, pick a voice, and optionally continue into the next chapter. **Comment on verse N** pauses the reading and starts recording on that verse. It uses the browser's speech engine, so voices and quality vary by device and no audio is stored or downloaded. On iPhone, Safari may require a tap to start each chapter.
+
 ## How saving works
 
 ```
@@ -74,6 +79,7 @@ The bucket never needs to be public, the app server never handles audio bytes, a
 | `POST /api/commentaries/{id}/complete` | Step 3 of saving |
 | `PATCH /api/commentaries/{id}` · `DELETE /api/commentaries/{id}` | Rename · delete (removes the R2 file too) |
 | `GET /api/commentaries/{id}/audio[?download=1]` | Owner-checked redirect to the audio |
+| `GET /api/activity` · `POST /api/activity/read` | Days you read and recorded (for streaks) · log a reading day |
 | `GET /api/translations` · `/api/scripture/…` · `/api/lexicon/…` | Bible text and lexicon from getBible and Bolls (public) |
 
 ## Security notes
@@ -97,6 +103,10 @@ src/lib/api.ts                       browser client: the 3-step upload, XHR prog
 src/hooks/useAuth.tsx                session state + sign-in dialog control
 src/hooks/useRecorder.ts             MediaRecorder + live level sampling
 src/components/RecorderSheet.tsx     record → review → upload
+src/lib/streaks.ts                   streak maths (pure functions)
+src/hooks/useActivity.tsx            streak state, reading log, streak toast
+src/hooks/useSpeech.ts               read-aloud engine (Web Speech API)
+src/components/ListenPlayer.tsx      the bottom-sheet player
 ```
 
 ## Notes
